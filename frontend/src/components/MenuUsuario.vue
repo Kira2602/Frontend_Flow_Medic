@@ -28,7 +28,7 @@
                   <td>{{ file }}</td>
                   <td>
                     <a
-                      :href="`${process.env.VITE_API_URL}/app/output/simulations/${file}`"
+                      :href="`http://127.0.0.1:5000/app/output/simulations/${file}`"
                       target="_blank"
                       class="text-blue-600 hover:underline"
                     >
@@ -59,11 +59,13 @@
       </div>
     </div>
   </div>
+  <FooterComponent />
 </template>
 
 <script>
 import axios from 'axios'
 import NavbarGeneral from './NavbarGeneral.vue'
+import FooterComponent from './Footer_Component.vue'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faPlay } from '@fortawesome/free-solid-svg-icons'
 import { library } from '@fortawesome/fontawesome-svg-core'
@@ -72,7 +74,7 @@ library.add(faPlay)
 
 export default {
   name: 'MenuUsuario',
-  components: { NavbarGeneral, FontAwesomeIcon },
+  components: { NavbarGeneral, FontAwesomeIcon, FooterComponent },
   data() {
     return {
       files: [],
@@ -86,7 +88,7 @@ export default {
       const hospitalId = localStorage.getItem('hospital_id')
       if (!hospitalId) return
       try {
-        const response = await axios.get(`${process.env.VITE_API_URL}/queue/files/${hospitalId}`)
+        const response = await axios.get(`http://127.0.0.1:5000/queue/files/${hospitalId}`)
         this.files = response.data.files || []
       } catch (e) {
         console.error('Error:', e)
@@ -97,7 +99,7 @@ export default {
     },
     async descargarCSVDesdeJSON(nombreArchivoJson) {
       try {
-        const response = await axios.get(`${process.env.VITE_API_URL}/app/output/simulations/${nombreArchivoJson}`)
+        const response = await axios.get(`http://127.0.0.1:5000/app/output/simulations/${nombreArchivoJson}`)
         const registros = response.data.records
         const keys = Object.keys(registros[0])
         const csvRows = [keys.join(','), ...registros.map(obj => keys.map(k => JSON.stringify(obj[k])).join(','))]
@@ -116,7 +118,7 @@ export default {
     },
     async previsualizarCSV(nombreArchivoJson) {
       try {
-        const response = await axios.get(`${process.env.VITE_API_URL}/app/output/simulations/${nombreArchivoJson}`)
+        const response = await axios.get(`http://127.0.0.1:5000/app/output/simulations/${nombreArchivoJson}`)
         const registros = response.data.records
         this.columnasPreview = Object.keys(registros[0])
         this.filasPreview = registros
