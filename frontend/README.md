@@ -22,5 +22,9 @@ npm run build
 npm run lint
 ```
 
+### libraries
+```
+npm install chart.js@^4
+```
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
