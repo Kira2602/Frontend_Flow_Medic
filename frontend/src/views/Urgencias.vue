@@ -7,24 +7,28 @@
         <h2 class="form-title">Simulación de Urgencias</h2>
 
         <form @submit.prevent="runSimulation" class="form-body">
+          <!-- Iteramos solo sobre las keys de inputKeys -->
           <div
             class="form-group"
-            v-for="(key) in Object.keys(form).filter(k => k !== 'hospital_id')"
+            v-for="key in inputKeys"
             :key="key"
-            
           >
             <label class="form-label">
               {{ labels[key] || key }}
             </label>
             <div class="form-input-wrapper">
               <i class="fas fa-user input-icon"></i>
+
+              <!-- Si el valor actual es numérico, input type=number + v-model.number -->
               <input
-                v-if="typeof value === 'number'"
+                v-if="typeof form[key] === 'number'"
                 type="number"
                 step="any"
                 v-model.number="form[key]"
                 class="form-input"
               />
+
+              <!-- Si no, input de texto -->
               <input
                 v-else
                 type="text"
@@ -33,6 +37,9 @@
               />
             </div>
           </div>
+
+          <!-- Hidden para hospital_id -->
+          <input type="hidden" v-model.number="form.hospital_id" />
 
           <button type="submit" class="submit-button">
             Ejecutar Simulación
@@ -44,71 +51,72 @@
       <div v-if="result" ref="resultSection" class="result-box">
         <h3 class="result-title">Resultados</h3>
         <p><strong>Archivo:</strong> {{ result.file_name }}</p>
-        <p><strong>ID de simulacion:</strong> {{ result.queue_id }}</p>
+        <p><strong>ID de simulación:</strong> {{ result.queue_id }}</p>
+
         <h4>Métricas</h4>
         <pre class="result-metrics">{{ result.metrics }}</pre>
+
         <div class="metrics-interpretation">
           <h4>Interpretación de Métricas</h4>
           <ul class="list-disc ml-6 mt-2 text-sm text-gray-700">
             <li>
-              <strong>Tasa de admisión (admission_rate):</strong>
-              {{ (result.metrics.admission_rate * 100).toFixed(2) }}% de los pacientes fueron hospitalizados tras su atención inicial. Una tasa superior al 10% puede indicar una alta severidad de los casos.
+              <strong>Tasa de admisión:</strong>
+              {{ (result.metrics.admission_rate * 100).toFixed(2) }}%
             </li>
             <li>
-              <strong>Estancia promedio en el sistema (avg_los):</strong>
-              {{ result.metrics.avg_los.toFixed(2) }} minutos en promedio desde que el paciente entra al sistema hasta que se va. Valores altos pueden reflejar congestión o procesos lentos.
+              <strong>Estancia promedio:</strong>
+              {{ result.metrics.avg_los.toFixed(2) }} min
             </li>
             <li>
-              <strong>Tiempo promedio de espera en triaje (avg_wait_triage):</strong>
-              {{ result.metrics.avg_wait_triage.toFixed(2) }} minutos de espera antes de la clasificación inicial del paciente. Debe mantenerse bajo para garantizar atención oportuna.
+              <strong>Espera triaje:</strong>
+              {{ result.metrics.avg_wait_triage.toFixed(2) }} min
             </li>
             <li>
-              <strong>Tiempo promedio de espera en consulta (avg_wait_consult):</strong>
-              {{ result.metrics.avg_wait_consult.toFixed(2) }} minutos de espera antes de ver a un médico. Tiempos altos indican una carga excesiva en el personal médico.
+              <strong>Espera consulta:</strong>
+              {{ result.metrics.avg_wait_consult.toFixed(2) }} min
             </li>
             <li>
-              <strong>Tiempo promedio de espera en diagnóstico (avg_wait_diag):</strong>
-              {{ result.metrics.avg_wait_diag.toFixed(2) }} minutos esperando resultados de laboratorio o imágenes. Puede reflejar saturación en rayos X, laboratorio o ultrasonido.
+              <strong>Espera diagnóstico:</strong>
+              {{ result.metrics.avg_wait_diag.toFixed(2) }} min
             </li>
             <li>
-              <strong>Tiempo promedio de espera en tratamiento (avg_wait_treat):</strong>
-              {{ result.metrics.avg_wait_treat.toFixed(2) }} minutos de espera para recibir tratamiento. Un valor elevado puede deberse a limitaciones de camas o personal de enfermería.
+              <strong>Espera tratamiento:</strong>
+              {{ result.metrics.avg_wait_treat.toFixed(2) }} min
             </li>
             <li>
-              <strong>Pacientes atendidos por hora (throughput):</strong>
-              {{ result.metrics.throughput.toFixed(2) }} pacientes completan todo el proceso por hora. Un valor alto indica buena capacidad de resolución del sistema hospitalario.
+              <strong>Pacientes/hora:</strong>
+              {{ result.metrics.throughput.toFixed(2) }}
             </li>
           </ul>
         </div>
 
-         <div class="flex justify-center mb-6">
-        <button
-          @click="goToDatos"
-          class="submit-button"        
-          >
-          Ver datos de simulación
-        </button>
+        <div class="flex justify-center mb-6">
+          <button @click="goToDatos" class="submit-button">
+            Ver datos de simulación
+          </button>
+        </div>
       </div>
-      </div>
-      <!-- Nueva sección de gráficas -->
-    <ResultsCharts
-      v-if="records.length"
-      :records="records"
-      :metrics="metrics"
-    />
 
+      <!-- Gráficas -->
+      <ResultsCharts
+        v-if="records.length"
+        :records="records"
+        :metrics="metrics"
+      />
+
+      <!-- Error -->
       <div v-if="error" class="error-message">
         {{ error }}
       </div>
-      <!-- Botón para ir a generar simulación -->
-      
     </div>
-     <FooterComponent />
+
+    <FooterComponent />
   </div>
 </template>
 
 <script>
-import { defineComponent, reactive, ref ,nextTick } from 'vue'
+import { defineComponent, reactive, ref, computed, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import axios from 'axios'
 import NavbarComponent from '@/components/NavbarGeneral.vue'
 import FooterComponent from '@/components/Footer_Component.vue'
@@ -116,9 +124,11 @@ import ResultsCharts from '@/components/ResultsCharts.vue'
 
 export default defineComponent({
   name: 'UrgenciasPage',
-  components: { NavbarComponent, FooterComponent,ResultsCharts  },
-  
+  components: { NavbarComponent, FooterComponent, ResultsCharts },
   setup() {
+    const router = useRouter()
+
+    // --- Estado reactivo ---
     const form = reactive({
       peak_lambda: 15,
       night_lambda: 12,
@@ -146,7 +156,7 @@ export default defineComponent({
       num_runs: 500,
       hospital_id: Number(localStorage.getItem('hospital_id')) || 1
     })
-      
+
     const labels = {
       peak_lambda: 'Llegadas pico',
       night_lambda: 'Llegadas noche',
@@ -169,29 +179,50 @@ export default defineComponent({
       priority_critical: 'Prioridad crítica (%)',
       priority_urgent: 'Prioridad urgente (%)',
       priority_non_urgent: 'Prioridad no urgente (%)',
-      diag_prob: 'Probabilidad de diagnóstico',
-      admit_prob: 'Probabilidad de admisión',
+      diag_prob: 'Prob. diagnóstico',
+      admit_prob: 'Prob. admisión',
       num_runs: 'N.º de simulaciones',
       hospital_id: 'ID del hospital'
     }
 
+    // Filtra solo las claves que se muestran como inputs
+    const inputKeys = computed(() =>
+      Object.keys(form).filter(key => key !== 'hospital_id')
+    )
+
+    // Resultados y estado de error
     const result = ref(null)
     const error = ref(null)
+    const records = ref([])
+    const metrics = ref({})
     const resultSection = ref(null)
 
-    const records = ref([])  
-    const metrics = ref({})
-
+    // --- Función de envío ---
     async function runSimulation() {
       error.value = null
 
+      // Construimos un payload donde convertimos explícitamente cada campo numérico
+      const payload = {}
+      Object.entries(form).forEach(([key, val]) => {
+        // Si es cadena, tratamos de convertir a número
+        if (typeof val === 'string') {
+          payload[key] = val.includes('.') ? parseFloat(val) : parseInt(val, 10)
+        } else {
+          // Si ya es number, lo dejamos
+          payload[key] = val
+        }
+      })
+
       try {
-        const resp = await axios.post('http://localhost:5000/simulate/', form)
+        const resp = await axios.post(
+          'http://localhost:5000/simulate/',
+          payload
+        )
         result.value = resp.data
-        const data = resp.data
-        result.value
-        records.value = data.records
-        metrics.value = data.metrics
+        records.value = resp.data.records
+        metrics.value = resp.data.metrics
+
+        // Hacer scroll a resultados
         await nextTick()
         resultSection.value?.scrollIntoView({ behavior: 'smooth' })
       } catch (e) {
@@ -199,16 +230,27 @@ export default defineComponent({
       }
     }
 
-    return { form, result, error, runSimulation, labels, resultSection, records, metrics }
-  },
-  methods: {
-    goToDatos() {
-      this.$router.push('/menu-usuario')
+    function goToDatos() {
+      router.push('/menu-usuario')
+    }
+
+    return {
+      form,
+      labels,
+      inputKeys,
+      result,
+      error,
+      records,
+      metrics,
+      resultSection,
+      runSimulation,
+      goToDatos
     }
   }
-  
 })
 </script>
+
+
 
 <style scoped>
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
