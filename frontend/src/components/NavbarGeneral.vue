@@ -5,7 +5,7 @@
       <img src="../assets/logo_fm.png" alt="Logo" class="logo-img" />
     </div>
 
-    <!-- Home: si no está logeado → Iniciar Sesión; si está logeado → Usuario + Cerrar Sesión -->
+    <!-- Home: si no está logeado → Iniciar Sesión; si está logeado → Usuario + Cerrar Sesión + Volver -->
     <div v-if="isHome" class="right-block">
       <div v-if="isLoggedIn" class="user-info">
         <i class="fas fa-user"></i>
@@ -24,6 +24,12 @@
         @click="logout"
       >
         Cerrar Sesión
+      </button>
+      <button
+        class="btn btn-outline"
+        @click="goBack"
+      >
+        Volver
       </button>
     </div>
 
@@ -109,6 +115,7 @@
         <li v-else-if="isLoggedIn" class="user-info-mobile">
           <i class="fas fa-user"></i>
           <span class="user-name">{{ userName }}</span>
+          <button class="btn btn-outline" @click="logout">Cerrar Sesión</button>
         </li>
       </ul>
     </div>
