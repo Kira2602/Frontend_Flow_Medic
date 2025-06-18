@@ -57,6 +57,9 @@
 </template>
 
 <script>
+import axios from 'axios'
+import Swal from 'sweetalert2'
+
 export default {
   name: 'RegistroHospitalPopup',
   props: {
@@ -76,11 +79,8 @@ export default {
     }
   },
   watch: {
-    isVisible(newVal) {
-      if (!newVal) {
-        // Cuando se oculta, limpiar formulario
-        this.clearForm()
-      }
+    isVisible(val) {
+      if (!val) this.clearForm()
     }
   },
   methods: {
@@ -91,17 +91,12 @@ export default {
     validateField(field) {
       this.errors[field] = ''
       if (field === 'nombre') {
-        if (!this.nombre) {
-          this.errors.nombre = 'El nombre no puede estar vacío'
-        } else if (this.nombre.length < 3) {
-          this.errors.nombre = 'El nombre debe tener al menos 3 caracteres'
-        }
-      } else if (field === 'ubicacion') {
-        if (!this.ubicacion) {
-          this.errors.ubicacion = 'La ubicación no puede estar vacía'
-        } else if (this.ubicacion.length < 3) {
-          this.errors.ubicacion = 'La ubicación debe tener al menos 3 caracteres'
-        }
+        if (!this.nombre) this.errors.nombre = 'El nombre no puede estar vacío'
+        else if (this.nombre.length < 3) this.errors.nombre = 'Debe tener al menos 3 caracteres'
+      }
+      if (field === 'ubicacion') {
+        if (!this.ubicacion) this.errors.ubicacion = 'La ubicación no puede estar vacía'
+        else if (this.ubicacion.length < 3) this.errors.ubicacion = 'Debe tener al menos 3 caracteres'
       }
     },
     validateForm() {
@@ -109,29 +104,49 @@ export default {
       this.validateField('ubicacion')
       return !this.errors.nombre && !this.errors.ubicacion
     },
-    onRegister() {
-      if (!this.validateForm()) {
-        return
-      }
-      const payload = {
-        nombre: this.nombre,
-        ubicacion: this.ubicacion
-      }
-      // Emitir evento con los datos al componente padre
-      this.$emit('register-hospital', payload)
-      // Limpiar y cerrar
-      this.clearForm()
-      this.closePopup()
-    },
     clearForm() {
       this.nombre = ''
       this.ubicacion = ''
       this.errors.nombre = ''
       this.errors.ubicacion = ''
+    },
+    async onRegister() {
+      if (!this.validateForm()) return
+
+      try {
+        // El blueprint está montado en "/hospitals/" para POST
+        const { data } = await axios.post(
+          'http://127.0.0.1:5000/hospitals/',
+          {
+            nombre: this.nombre,
+            ubicacion: this.ubicacion
+          }
+        )
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Hospital creado',
+          text: `Hospital: ${data.nombre}`
+        })
+
+        this.clearForm()
+        this.closePopup()
+
+      } catch (err) {
+        // Si el OPTIONS preflight falla, revisa CORS en tu servidor
+        if (err.response && err.response.data.error) {
+          Swal.fire('Error', err.response.data.error, 'error')
+        } else if (err.response) {
+          Swal.fire('Error', 'Revisa tus datos', 'error')
+        } else {
+          Swal.fire('Error de red', 'No se pudo conectar al servidor', 'error')
+        }
+      }
     }
   }
 }
 </script>
+
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');

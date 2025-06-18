@@ -5,7 +5,6 @@
       <div class="register-content">
         <!-- Imagen lateral -->
         <div class="register-image">
-          <!-- Ajusta el src a la ruta de tu imagen -->
           <img
             src="@/assets/login_image.png"
             alt="Imagen registro"
@@ -72,6 +71,24 @@
             </div>
             <span v-if="errors.contrasenia" class="error-message">{{ errors.contrasenia }}</span>
 
+            <!-- Hospital -->
+            <label for="hospital">Hospital</label>
+              <select
+                id="hospital"
+                v-model="selectedHospital"
+                @change="validateField('hospital')"
+                :class="{ 'error-border': errors.hospital }"
+              >
+                <option disabled value="">Selecciona un hospital</option>
+                <option
+                  v-for="h in hospitals"
+                  :key="h.id"
+                  :value="h.id"
+                >
+                  {{ h.nombre }}
+                </option>
+              </select>
+              <span v-if="errors.hospital" class="error-message">{{ errors.hospital }}</span>
             <!-- Botón Registrarse -->
             <button type="submit" class="btn-register">Registrarse</button>
           </form>
@@ -82,7 +99,7 @@
 </template>
 
 <script>
-// Sin axios; solo emite evento al padre
+import axios from 'axios'
 import Swal from 'sweetalert2'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { library } from '@fortawesome/fontawesome-svg-core'
@@ -104,14 +121,20 @@ export default {
       email: '',
       telefono: '',
       contrasenia: '',
+      selectedHospital: '',
+      hospitals: [],
       showPassword: false,
       errors: {
         nombre: '',
         email: '',
         telefono: '',
-        contrasenia: ''
+        contrasenia: '',
+        hospital: ''
       }
     }
+  },
+  mounted() {
+    this.loadHospitals()
   },
   methods: {
     closePopup() {
@@ -120,33 +143,38 @@ export default {
     togglePasswordVisibility() {
       this.showPassword = !this.showPassword
     },
+    async loadHospitals() {
+      try {
+        const { data } = await axios.get('http://127.0.0.1:5000/hospitals/')
+        this.hospitals = data
+      } catch (e) {
+        console.error('Error cargando hospitales:', e)
+      }
+    },
     validateField(field) {
       this.errors[field] = ''
       if (field === 'nombre') {
-        if (!this.nombre) {
-          this.errors.nombre = 'El nombre no puede estar vacío'
-        }
-      } else if (field === 'email') {
+        if (!this.nombre) this.errors.nombre = 'El nombre no puede estar vacío'
+      }
+      else if (field === 'email') {
         const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-        if (!this.email) {
-          this.errors.email = 'El email no puede estar vacío'
-        } else if (!re.test(this.email)) {
-          this.errors.email = 'Introduce un correo electrónico válido'
-        }
-      } else if (field === 'telefono') {
+        if (!this.email) this.errors.email = 'El email no puede estar vacío'
+        else if (!re.test(this.email)) this.errors.email = 'Introduce un correo válido'
+      }
+      else if (field === 'telefono') {
         const norm = this.telefono.replace(/[\s-]/g, '')
         const re = /^\+?\d{7,15}$/
-        if (!this.telefono) {
-          this.errors.telefono = 'El teléfono no puede estar vacío'
-        } else if (!re.test(norm)) {
-          this.errors.telefono = 'Introduce un número de teléfono válido'
-        }
-      } else if (field === 'contrasenia') {
-        if (!this.contrasenia) {
-          this.errors.contrasenia = 'La contraseña no puede estar vacía'
-        } else if (this.contrasenia.length < 6) {
+        if (!this.telefono) this.errors.telefono = 'El teléfono no puede estar vacío'
+        else if (!re.test(norm)) this.errors.telefono = 'Introduce un teléfono válido'
+      }
+      else if (field === 'contrasenia') {
+        if (!this.contrasenia) this.errors.contrasenia = 'La contraseña no puede estar vacía'
+        else if (this.contrasenia.length < 6)
           this.errors.contrasenia = 'La contraseña debe tener al menos 6 caracteres'
-        }
+      }
+      else if (field === 'hospital') {
+        if (!this.selectedHospital)
+          this.errors.hospital = 'Debes seleccionar un hospital'
       }
     },
     validateForm() {
@@ -154,40 +182,43 @@ export default {
       this.validateField('email')
       this.validateField('telefono')
       this.validateField('contrasenia')
-      return (
-        !this.errors.nombre &&
-        !this.errors.email &&
-        !this.errors.telefono &&
-        !this.errors.contrasenia
-      )
+      this.validateField('hospital')
+      return !Object.values(this.errors).some(err => err)
     },
-    onRegister() {
+    async onRegister() {
       if (!this.validateForm()) return
 
-      const payload = {
-        nombre: this.nombre,
-        email: this.email,
-        telefono: this.telefono,
-        contrasenia: this.contrasenia
+      try {
+        const { data } = await axios.post(
+          'http://127.0.0.1:5000/usuario/create',
+          {
+            nombre: this.nombre,
+            email: this.email,
+            telefono: this.telefono,
+            contrasenia: this.contrasenia,
+            hospital_id: this.selectedHospital
+          }
+        )
+        Swal.fire({
+          icon: 'success',
+          title: '¡Usuario creado!',
+          text: `Nombre: ${data.usuario.nombre}`
+        })
+        // reset
+        this.nombre = ''
+        this.email = ''
+        this.telefono = ''
+        this.contrasenia = ''
+        this.selectedHospital = ''
+        this.showPassword = false
+        this.$emit('close')
+      } catch (err) {
+        if (err.response) {
+          Swal.fire('Error', err.response.data.error || 'Revisa tus datos', 'error')
+        } else {
+          Swal.fire('Error de red', 'No se pudo conectar al servidor', 'error')
+        }
       }
-      // Emitir al padre para backend o manejo externo
-      this.$emit('register', payload)
-
-      // Feedback simulado
-      Swal.fire({
-        icon: 'success',
-        title: 'Registro simulado',
-        text: 'Datos preparados para envío al backend',
-        confirmButtonText: 'OK'
-      })
-
-      // Limpiar campos y cerrar popup
-      this.nombre = ''
-      this.email = ''
-      this.telefono = ''
-      this.contrasenia = ''
-      this.showPassword = false
-      this.closePopup()
     }
   }
 }
@@ -206,6 +237,32 @@ export default {
   font-family: 'Poppins', sans-serif;
 }
 
+.register-form select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 4px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: #fff;
+  appearance: none;           /* quita el estilo nativo */
+  background-image: url("data:image/svg+xml;charset=UTF8,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 10px 6px;
+  cursor: pointer;
+}
+
+.register-form select:focus {
+  outline: none;
+  border-color: #ac3030;
+  box-shadow: 0 0 0 2px rgba(172, 48, 48, 0.2);
+}
+
+/* Mantiene la clase error-border para el select */
+.error-border {
+  border-color: red !important;
+}
 /* Overlay */
 .register-popup-overlay {
   position: fixed;
