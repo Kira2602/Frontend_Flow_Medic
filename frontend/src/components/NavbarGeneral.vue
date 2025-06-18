@@ -5,73 +5,115 @@
       <img src="../assets/logo_fm.png" alt="Logo" class="logo-img" />
     </div>
 
-    <!-- Si estamos en Login, solo mostrar botón Volver -->
-    <div v-if="$route.name === 'Login'" class="right-block">
+    <!-- Home: si no está logeado → Iniciar Sesión; si está logeado → Usuario + Cerrar Sesión -->
+    <div v-if="isHome" class="right-block">
+      <div v-if="isLoggedIn" class="user-info">
+        <i class="fas fa-user"></i>
+        <span class="user-name">{{ userName }}</span>
+      </div>
+      <button
+        v-if="!isLoggedIn"
+        class="btn btn-outline"
+        @click="navigate('Login')"
+      >
+        Iniciar Sesión
+      </button>
+      <button
+        v-else
+        class="btn btn-outline"
+        @click="logout"
+      >
+        Cerrar Sesión
+      </button>
+    </div>
+
+    <!-- menú-usuario: Usuario + Inicio + Cerrar Sesión -->
+    <div v-else-if="isMenuUsuario" class="right-block">
+      <div v-if="isLoggedIn" class="user-info">
+        <i class="fas fa-user"></i>
+        <span class="user-name">{{ userName }}</span>
+      </div>
+      <button class="btn btn-outline" @click="goInicio">Inicio</button>
+      <button class="btn btn-outline" @click="logout">Cerrar Sesión</button>
+    </div>
+
+    <!-- urgencias: Usuario + Inicio + Volver + Cerrar Sesión -->
+    <div v-else-if="isUrgencias" class="right-block">
+      <div v-if="isLoggedIn" class="user-info">
+        <i class="fas fa-user"></i>
+        <span class="user-name">{{ userName }}</span>
+      </div>
+      <button class="btn btn-outline" @click="goInicio">Inicio</button>
+      <button class="btn btn-outline" @click="goBack">Volver</button>
+      <button class="btn btn-outline" @click="logout">Cerrar Sesión</button>
+    </div>
+
+    <!-- Login: Volver + Inicio -->
+    <div v-else-if="isLogin" class="right-block">
       <button class="btn btn-outline" @click="goInicio">Inicio</button>
       <button class="btn btn-outline" @click="goBack">Volver</button>
     </div>
 
-    <!-- Menú normal si no estamos en Login -->
-    <div v-else>
-      <!-- Desktop menu -->
-      <div class="menu-desktop">
-        <ul class="menu">
-          <li><a @click.prevent="navigate('Home')" class="menu-link">Inicio</a></li>
-        </ul>
-
-        <div class="right-block">
-  <button
-    v-if="mode === 'user'"
-    class="btn btn-outline"
-    @click="goInicio"
-  >
-    Inicio
-  </button>
-  <button
-    v-if="mode === 'user'"
-    class="btn btn-outline"
-    @click="goBack"
-  >
-    Volver
-  </button>
-
-  <button
-    v-else-if="mode === 'public'"
-    class="btn btn-outline"
-    @click="navigate('Login')"
-  >
-    Iniciar Sesión
-  </button>
-
-  <button
-    v-if="onSpecialRoute"
-    class="btn btn-outline"
-    @click="goBack"
-  >
-    Volver
-  </button>
-</div>
-
+    <!-- Resto de rutas: menú completo + Usuario -->
+    <div v-else class="menu-desktop">
+      <ul class="menu">
+        <li><a @click.prevent="navigate('Home')" class="menu-link">Inicio</a></li>
+        <li><a @click.prevent="navigate('Hospitales')" class="menu-link">Hospitales</a></li>
+      </ul>
+      <div class="right-block">
+        <div v-if="isLoggedIn" class="user-info">
+          <i class="fas fa-user"></i>
+          <span class="user-name">{{ userName }}</span>
+        </div>
+        <button
+          v-if="mode === 'user'"
+          class="btn btn-outline"
+          @click="goInicio"
+        >
+          Inicio
+        </button>
+        <button
+          v-if="mode === 'user'"
+          class="btn btn-outline"
+          @click="goBack"
+        >
+          Volver
+        </button>
+        <button
+          v-else-if="mode === 'public'"
+          class="btn btn-outline"
+          @click="navigate('Login')"
+        >
+          Iniciar Sesión
+        </button>
+        <button
+          v-if="onSpecialRoute"
+          class="btn btn-outline"
+          @click="goBack"
+        >
+          Volver
+        </button>
       </div>
+    </div>
 
-      <!-- Mobile menu -->
-      <div class="menuToggle">
-        <input type="checkbox" id="menu-btn" v-model="menuOpen" />
-        <span></span><span></span><span></span>
-        <ul class="menuItem">
-          <li><a @click.prevent="navigate('Home')" class="menu-link">Inicio</a></li>
-          <li><a @click.prevent="navigate('Hospitales')" class="menu-link">Hospitales</a></li>
-          <li v-if="mode === 'public'">
-            <button class="btn btn-outline" @click="navigate('Login')">
-              Iniciar Sesión
-            </button>
-          </li>
-        </ul>
-      </div>
+    <!-- Mobile menu -->
+    <div class="menuToggle">
+      <input type="checkbox" id="menu-btn" v-model="menuOpen" />
+      <span></span><span></span><span></span>
+      <ul class="menuItem">
+        <li><a @click.prevent="navigate('Home')" class="menu-link">Inicio</a></li>
+        <li><a @click.prevent="navigate('Hospitales')" class="menu-link">Hospitales</a></li>
+        <li v-if="mode === 'public'">
+          <button class="btn btn-outline" @click="navigate('Login')">Iniciar Sesión</button>
+        </li>
+        <li v-else-if="isLoggedIn" class="user-info-mobile">
+          <i class="fas fa-user"></i>
+          <span class="user-name">{{ userName }}</span>
+        </li>
+      </ul>
     </div>
   </nav>
 </template>
-
 
 <script>
 export default {
@@ -80,6 +122,10 @@ export default {
     mode: {
       type: String,
       default: 'public'
+    },
+    userName: {
+      type: String,
+      default: ''
     }
   },
   data() {
@@ -88,6 +134,27 @@ export default {
     };
   },
   computed: {
+    isLoggedIn() {
+      return this.mode === 'user' && this.userName !== '';
+    },
+    isHome() {
+      return this.$route.name === 'Home' || this.$route.path === '/';
+    },
+    isLogin() {
+      return this.$route.name === 'Login' || this.$route.path.includes('login');
+    },
+    isMenuUsuario() {
+      return (
+        this.$route.name.toLowerCase().includes('menu-usuario') ||
+        this.$route.path.includes('/menu-usuario')
+      );
+    },
+    isUrgencias() {
+      return (
+        this.$route.name.toLowerCase().includes('urgencias') ||
+        this.$route.path.includes('/urgencias')
+      );
+    },
     onSpecialRoute() {
       const specials = [
         'mis-mascotas',
@@ -101,21 +168,20 @@ export default {
     }
   },
   methods: {
-    navigate(routeName) {
-      this.$router.push({ name: routeName });
-      this.menuOpen = false;
-    },
-    scrollTo(hash) {
-      const el = document.querySelector(hash);
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    navigate(name) {
+      this.$router.push({ name });
       this.menuOpen = false;
     },
     goBack() {
-      this.$router.push('/index');
+      this.$router.go(-1);
     },
     goInicio() {
-      this.$router.push('/')
+      this.$router.push({ name: 'Home' });
     },
+    logout() {
+      // Limpia tu store/token aquí
+      this.$router.push({ name: 'Login' });
+    }
   }
 };
 </script>
@@ -135,44 +201,57 @@ export default {
   margin: 20px;
 }
 
-/* Logo */
 .logo-img {
-  width: 70px; height: 70px;
+  width: 70px;
+  height: 70px;
   cursor: pointer;
 }
 
-/* Menú de escritorio: enlaces + botones alineados a la derecha */
 .menu-desktop {
   flex: 1;
   display: flex;
-  justify-content: flex-end; /* todo al extremo derecho */
+  justify-content: flex-end;
   align-items: center;
   gap: 2rem;
 }
 
-/* Enlaces */
 .menu {
   display: flex;
   gap: 1.5rem;
   list-style: none;
-  margin: 0; padding: 0;
+  margin: 0;
+  padding: 0;
 }
+
 .menu-link {
   color: #fff;
   font-size: 16px;
   font-weight: 500;
   text-decoration: none;
-  transition: color .3s;
+  transition: color 0.3s;
 }
 .menu-link:hover {
   color: #f4cfc6;
 }
 
-/* Bloque derecho (botones/usuario) */
 .right-block {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+/* Bloque de info de usuario */
+.user-info,
+.user-info-mobile {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #efdbbf;
+  font-weight: 600;
+}
+.user-info i,
+.user-info-mobile i {
+  font-size: 1.2rem;
 }
 
 /* Botones */
@@ -182,7 +261,7 @@ export default {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color .3s;
+  transition: background-color 0.3s;
 }
 .btn-outline {
   background: transparent;
@@ -194,51 +273,7 @@ export default {
   color: #121211;
 }
 
-/* Usuario */
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  position: relative;
-}
-.user-info i {
-  font-size: 1.3rem;
-  color: #f4cfc6;
-  cursor: pointer;
-}
-.user-profile {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  cursor: pointer;
-}
-.user-profile span {
-  color: #fff;
-  font-weight: 600;
-}
-
-/* Dropdown */
-.dropdown-menu {
-  position: absolute;
-  top: 40px; right: 0;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  padding: 8px;
-}
-.dropdown-menu ul {
-  list-style: none; margin: 0; padding: 0;
-}
-.dropdown-menu li {
-  padding: 6px 12px;
-  cursor: pointer;
-  transition: background .2s;
-}
-.dropdown-menu li:hover {
-  background: #f4f4f4;
-}
-
-/* Hamburguesa móvil */
+/* Mobile */
 .menuToggle {
   display: none;
   flex-direction: column;
@@ -248,14 +283,16 @@ export default {
   display: none;
 }
 .menuToggle span {
-  width: 25px; height: 3px;
+  width: 25px;
+  height: 3px;
   background: #fff;
   margin: 3px 0;
-  transition: all .3s;
+  transition: all 0.3s;
 }
 .menuItem {
   position: absolute;
-  top: 60px; right: 20px;
+  top: 60px;
+  right: 20px;
   background: #68181f;
   border-radius: 10px;
   display: none;
@@ -269,14 +306,13 @@ export default {
   list-style: none;
   margin: 8px 0;
 }
-.menuItem .menu-link {
-  color: #fff;
-  font-size: 16px;
-}
 
-/* Responsive */
 @media (max-width: 768px) {
-  .menu-desktop { display: none; }
-  .menuToggle { display: flex; }
+  .menu-desktop {
+    display: none;
+  }
+  .menuToggle {
+    display: flex;
+  }
 }
 </style>

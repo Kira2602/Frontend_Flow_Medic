@@ -9,7 +9,7 @@
         <div class="card-head">
           <div class="card-product-img">
             <!-- pon aquí una imagen por hospital, o un placeholder -->
-            <img src="@/assets/materno.jpg" alt="hospital" />
+            <img src="@/assets/hospital_image.png" alt="hospital" />
           </div>
         </div>
 

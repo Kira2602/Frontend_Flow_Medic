@@ -14,7 +14,7 @@
 
       <!-- Enlaces útiles -->
       <div class="footer-section">
-        <h3>Enlaces</h3>
+        <h3>Servicios</h3>
         <ul>
           <li><a href="/">Inicio</a></li>
           <li><a href="/hospitales">Hospitales</a></li>

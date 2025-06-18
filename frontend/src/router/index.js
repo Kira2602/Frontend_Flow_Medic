@@ -5,7 +5,6 @@ import Hospitales from '@/views/Hospitales.vue'
 import Urgencias from '@/views/Urgencias.vue'
 import Login from '@/views/Login.vue'
 import MenuUsuario from '@/components/MenuUsuario.vue'
-import Index from '@/views/Index.vue'
 const routes = [
   {
     path: '/',
@@ -32,11 +31,6 @@ const routes = [
     name: 'MenuUsuario',
     component: MenuUsuario
   },
-  {
-    path: '/index',
-    name: 'Index',
-    component: Index
-  }
 
 ]
 
