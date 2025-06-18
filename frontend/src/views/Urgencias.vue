@@ -90,7 +90,12 @@
         </button>
       </div>
       </div>
-     
+      <!-- Nueva sección de gráficas -->
+    <ResultsCharts
+      v-if="records.length"
+      :records="records"
+      :metrics="metrics"
+    />
 
       <div v-if="error" class="error-message">
         {{ error }}
@@ -107,10 +112,11 @@ import { defineComponent, reactive, ref ,nextTick } from 'vue'
 import axios from 'axios'
 import NavbarComponent from '@/components/NavbarGeneral.vue'
 import FooterComponent from '@/components/Footer_Component.vue'
+import ResultsCharts from '@/components/ResultsCharts.vue'
 
 export default defineComponent({
   name: 'UrgenciasPage',
-  components: { NavbarComponent, FooterComponent },
+  components: { NavbarComponent, FooterComponent,ResultsCharts  },
   
   setup() {
     const form = reactive({
@@ -140,7 +146,7 @@ export default defineComponent({
       num_runs: 500,
       hospital_id: Number(localStorage.getItem('hospital_id')) || 1
     })
-
+      
     const labels = {
       peak_lambda: 'Llegadas pico',
       night_lambda: 'Llegadas noche',
@@ -173,13 +179,19 @@ export default defineComponent({
     const error = ref(null)
     const resultSection = ref(null)
 
+    const records = ref([])  
+    const metrics = ref({})
+
     async function runSimulation() {
       error.value = null
-      result.value = null
-      
+
       try {
         const resp = await axios.post('http://localhost:5000/simulate/', form)
         result.value = resp.data
+        const data = resp.data
+        result.value
+        records.value = data.records
+        metrics.value = data.metrics
         await nextTick()
         resultSection.value?.scrollIntoView({ behavior: 'smooth' })
       } catch (e) {
@@ -187,7 +199,7 @@ export default defineComponent({
       }
     }
 
-    return { form, result, error, runSimulation, labels, resultSection }
+    return { form, result, error, runSimulation, labels, resultSection, records, metrics }
   },
   methods: {
     goToDatos() {
